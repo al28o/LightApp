@@ -1,19 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
     xmlns:tools="http://schemas.android.com/tools"
-    android:paddingLeft="@dimen/activity_horizontal_margin"
-    android:paddingRight="@dimen/activity_horizontal_margin"
-    android:paddingTop="@dimen/activity_vertical_margin"
-    android:paddingBottom="@dimen/activity_vertical_margin"
     android:background="@color/background_material_dark"
-        tools:context=".Main_Screen">
+        tools:context=".Main_Screen"
+    android:orientation="horizontal"
+    android:weightSum="1">
+
+    <!-- The main dashboard view on left -->
+    <FrameLayout
+        android:id="@+id/left_fragment_container"
+        android:layout_width="0dp"
+        android:layout_weight=".6"
+        android:layout_height="fill_parent"
+
+        />
+
+    <!-- The individual device controller view on right -->
+    <FrameLayout
+        android:id="@+id/right_fragment_container"
+        android:layout_width="0dp"
+        android:layout_weight=".4"
+        android:layout_height="fill_parent"
+        />
 
 
 
+<!--
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
+            android:layout_weight=".3"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:layout_gravity="center_vertical">
@@ -97,26 +114,6 @@
                 android:enabled="false"
                 android:text="Lights4"/>
 
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentRight="true"
-                android:layout_alignBottom="@+id/devices"
-                android:id="@+id/brightnessUp"
-                android:paddingLeft="20dip"
-                android:paddingRight="20dip"
-                android:text="Brightness Up"/>
-
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentRight="true"
-                android:layout_alignBottom="@+id/devices"
-                android:id="@+id/brightnessDown"
-                android:paddingLeft="20dip"
-                android:paddingRight="20dip"
-                android:text="Brightness Down"/>
-
             <SeekBar
                 android:id="@+id/brightnessSeekBar"
                 android:layout_width="250dip"
@@ -126,67 +123,5 @@
             </SeekBar>
         </LinearLayout>
 
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:layout_gravity="center_vertical">
-
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentRight="true"
-            android:id="@+id/whiteTemp2"
-            android:paddingLeft="20dip"
-            android:paddingRight="20dip"
-            android:text="White Temp 2"/>
-
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentRight="true"
-            android:id="@+id/whiteTemp1"
-            android:paddingLeft="20dip"
-            android:paddingRight="20dip"
-            android:text="White Temp 1"/>
-
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentRight="true"
-            android:id="@+id/whiteTemp3"
-            android:paddingLeft="20dip"
-            android:paddingRight="20dip"
-            android:text="White Temp 3"/>
-
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentRight="true"
-            android:id="@+id/whiteTemp4"
-            android:paddingLeft="20dip"
-            android:paddingRight="20dip"
-            android:text="White Temp 4"/>
-
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentRight="true"
-            android:id="@+id/whiteTemp5"
-            android:paddingLeft="20dip"
-            android:paddingRight="20dip"
-            android:text="White Temp 5"/>
-
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentRight="true"
-            android:id="@+id/whiteTemp6"
-            android:paddingLeft="20dip"
-            android:paddingRight="20dip"
-            android:text="White Temp 6"/>
-
-        </LinearLayout>
-
-
+-->
 </LinearLayout>

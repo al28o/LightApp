@@ -1,5 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Default screen margins, per the Android Design guidelines. -->
-    <dimen name="activity_horizontal_margin">16dp</dimen>
-    <dimen name="activity_vertical_margin">16dp</dimen>
+    <!-- Standart dimens for the color wheel -->
+    <dimen name="color_wheel_radius">72dp</dimen>
+    <dimen name="color_wheel_thickness">7dp</dimen>
+    <dimen name="color_center_halo_radius">48dp</dimen>
+    <dimen name="color_center_radius">30dp</dimen>
+    <dimen name="color_pointer_halo_radius">10dp</dimen>
+    <dimen name="color_pointer_radius">9dp</dimen>
+    
+    <!-- Standart dimens for the bars -->
+    <dimen name="bar_thickness">6dp</dimen>
+    <dimen name="bar_length">200dp</dimen>
+    <dimen name="bar_pointer_radius">8dp</dimen>
+    <dimen name="bar_pointer_halo_radius">9dp</dimen>
+
+    <!-- fragment dimens -->
+    <dimen name="fragment_vertical_padding">8dp</dimen>
+    <dimen name="fragment_horizontal_padding">8dp</dimen>
+
+    <!-- gridview dimens -->
+    <dimen name="gridview_vertical_margin">6dp</dimen>
+    <dimen name="gridview_horizontal_margin">6dp</dimen>
+    <dimen name="gridview_item_padding">6dp</dimen>
+    <dimen name="gridview_padding">6dp</dimen>
+
+    <dimen name="activity_horizontal_margin">6dp</dimen>
+    <dimen name="activity_vertical_margin">6dp</dimen>
 </resources>

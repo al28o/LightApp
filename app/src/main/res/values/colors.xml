@@ -1,0 +1,6 @@
+<resources>
+
+        <color name="primaryLayer">#262626</color>
+    <color name="highlightColor">#00B3FF</color>
+    <color name="textColor">#ffd9d2ce</color>
+</resources>

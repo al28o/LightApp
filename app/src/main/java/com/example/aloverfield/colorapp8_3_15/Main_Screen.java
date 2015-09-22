@@ -1,30 +1,28 @@
 package com.example.aloverfield.colorapp8_3_15;
 
 import android.app.Activity;
-import android.app.AlertDialog;
-import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
-import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.SeekBar;
+import android.widget.Switch;
 import android.widget.Toast;
 
 import java.io.IOException;
 import java.util.UUID;
 
 
-public class Main_Screen extends Activity implements Colors.colorChangedListener{
+public class Main_Screen extends ActionBarActivity implements Colors.colorChangedListener,
+        LightActionFragment.OnLightValueChangedListener, DashboardFragment.OnDevicesSelectedChangedListener{
 
     private UUID mDeviceUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"); // Standard SPP UUID
 
@@ -55,34 +53,11 @@ public class Main_Screen extends Activity implements Colors.colorChangedListener
     private ProgressDialog progressDialog;
 
     private SeekBar brightnessBar;
+    private SeekBar whiteTemperatureBar;
+    private ColorPicker colorPicker;
+    private Switch onOffSwitch;
 
-    private Button redButton;
-    private Button lightRedButton;
-    private Button orangeButton;
-    private Button greenButton;
-    private Button lightGreenButton;
-    private Button yellowButton;
-    private Button blueButton;
-    private Button lightBlueButton;
-    private Button purpleButton;
-    private Button blackButton;
-    private Button whiteButton;
-    private Button sunsetButton;
     private Button disconnectBT;
-    private Button devices;
-    private Button colorWheel;
-    private Button lights1;
-    private Button lights2;
-    private Button lights3;
-    private Button lights4;
-    private Button brightnessDown;
-    private Button brightnessUp;
-    private Button whiteTemp1;
-    private Button whiteTemp2;
-    private Button whiteTemp3;
-    private Button whiteTemp4;
-    private Button whiteTemp5;
-    private Button whiteTemp6;
 
     private int color;
     private String color2;
@@ -94,26 +69,59 @@ public class Main_Screen extends Activity implements Colors.colorChangedListener
     private final int brightnessMin = 5;
     private final int brightnessMax = 255;
 
+    private Device[] mDevices = {
+            new Device(Device.DeviceType.LIGHT, "Light 1"),
+            new Device(Device.DeviceType.LIGHT, "Light 2"),
+            new Device(Device.DeviceType.LIGHT, "Light 3"),
+            new Device(Device.DeviceType.LIGHT, "Light 4")
+    };
+
+    private static boolean DEBUG = true;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         //setContentView(R.layout.activity_main_screen);
-        setContentView(R.layout.activity_main2);
+        setContentView(R.layout.activity_main);
+
+
+        /* Add dashboard to the left fragment container */
+        if (findViewById(R.id.left_fragment_container) != null){
+            if (savedInstanceState != null){
+                return;
+            }
+            DashboardFragment fragment = DashboardFragment.newInstance(mDevices);
+            getSupportFragmentManager().beginTransaction()
+                    .add(R.id.left_fragment_container, fragment).commit();
+        }
+
+        /* Add light action fragment to right container by default (master) */
+        if (findViewById(R.id.right_fragment_container) != null){
+            if (savedInstanceState != null){
+                return;
+            }
+            LightActionFragment fragment = new LightActionFragment();
+            getSupportFragmentManager().beginTransaction()
+                    .add(R.id.right_fragment_container, fragment).commit();
+        }
 
         ActivityHelper.initialize(this);
         this.activity = this;
 
         brightness = brightnessMax;
 
-        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        if (mBluetoothAdapter == null) {
-            Toast.makeText(getApplicationContext(), "Bluetooth not supported", Toast.LENGTH_LONG).show();
-        }
+        /* Used for testing on the emulator. In product, set static variable DEBUG above to false */
+        if (!DEBUG) {
+            mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+            if (mBluetoothAdapter == null) {
+                Toast.makeText(getApplicationContext(), "Bluetooth not supported", Toast.LENGTH_LONG).show();
+            }
 
-        if (!mBluetoothAdapter.isEnabled()) {
-            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+            if (!mBluetoothAdapter.isEnabled()) {
+                Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+            }
         }
 //
 //        AlertDialog.Builder adb = new AlertDialog.Builder(this);
@@ -127,7 +135,7 @@ public class Main_Screen extends Activity implements Colors.colorChangedListener
 //        d.show();
 //        d.getWindow().setAttributes(lp);
 
-
+        /*
         redButton = (Button) findViewById(R.id.redButton);
         lightRedButton = (Button) findViewById(R.id.lightRedButton);
         orangeButton = (Button) findViewById(R.id.orangeButton);
@@ -150,13 +158,18 @@ public class Main_Screen extends Activity implements Colors.colorChangedListener
         brightnessBar = (SeekBar) findViewById(R.id.brightnessSeekBar);
         brightnessUp = (Button) findViewById(R.id.brightnessUp);
         brightnessDown = (Button) findViewById(R.id.brightnessDown);
+        */
+
+        /*
         whiteTemp1 = (Button) findViewById(R.id.whiteTemp1);
         whiteTemp2 = (Button) findViewById(R.id.whiteTemp2);
         whiteTemp3 = (Button) findViewById(R.id.whiteTemp3);
         whiteTemp4 = (Button) findViewById(R.id.whiteTemp4);
         whiteTemp5 = (Button) findViewById(R.id.whiteTemp5);
         whiteTemp6 = (Button) findViewById(R.id.whiteTemp6);
+        */
 
+        /*
         brightnessBar.setProgress(5);
         brightnessBar.incrementProgressBy(25);
         brightnessBar.setMax(255);
@@ -168,8 +181,9 @@ public class Main_Screen extends Activity implements Colors.colorChangedListener
                 Intent intent = new Intent(Main_Screen.this, BluetoothDevices.class);
                 startActivityForResult(intent, 1);
             }
-        });
+        });*/
 
+        /*
         whiteTemp1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -432,7 +446,8 @@ public class Main_Screen extends Activity implements Colors.colorChangedListener
 
             }
         });
-
+        */
+        /*
         brightnessUp.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -510,7 +525,8 @@ public class Main_Screen extends Activity implements Colors.colorChangedListener
                 }
             }
         });
-
+        */
+        /*
         redButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -942,14 +958,15 @@ public class Main_Screen extends Activity implements Colors.colorChangedListener
                 }
             }
         });
-
-        disconnectBT.setOnClickListener(new View.OnClickListener() {
+        */
+        /*disconnectBT.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 new DisConnectBT().execute();
             }
-        });
+        });*/
 
+        /*
         lights1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -1012,7 +1029,7 @@ public class Main_Screen extends Activity implements Colors.colorChangedListener
 
                 new Colors(activity, Main_Screen.this, Color.WHITE).show();
             }
-        });
+        });*/
     }
 
     public void colorWheelColor(int colorWheel) {
@@ -1104,10 +1121,11 @@ public class Main_Screen extends Activity implements Colors.colorChangedListener
             mIsBluetoothConnected4 = false;
             sendToLights3 = false;
             sendToLights4 = false;
+            /*
             lights1.setEnabled(false);
             lights2.setEnabled(false);
             lights3.setEnabled(false);
-            lights4.setEnabled(false);
+            lights4.setEnabled(false);*/
             disconnectBT.setEnabled(false);
         }
 
@@ -1213,23 +1231,28 @@ public class Main_Screen extends Activity implements Colors.colorChangedListener
                 if(mBTSocket != null) {
                     mIsBluetoothConnected = true;
                     sendToLights1 = true;
-                    lights1.setEnabled(true);
+                    mDevices[0].enabled = true;
+                    //lights1.setEnabled(true);
                 }
                 if(mBTSocket2 != null) {
                     mIsBluetoothConnected2 = true;
                     sendToLights2 = true;
-                    lights2.setEnabled(true);
+                    mDevices[1].enabled = true;
+                    //lights2.setEnabled(true);
                 }
                 if(mBTSocket3 != null) {
                     mIsBluetoothConnected3 = true;
                     sendToLights3 = true;
-                    lights3.setEnabled(true);
+                    mDevices[2].enabled = true;
+                    //lights3.setEnabled(true);
                 }
                 if(mBTSocket4 != null) {
                     mIsBluetoothConnected4 = true;
                     sendToLights4 = true;
-                    lights4.setEnabled(true);
+                    mDevices[3].enabled = true;
+                    //lights4.setEnabled(true);
                 }
+                /*
                 redButton.setEnabled(true);
                 lightRedButton.setEnabled(true);
                 orangeButton.setEnabled(true);
@@ -1241,7 +1264,7 @@ public class Main_Screen extends Activity implements Colors.colorChangedListener
                 purpleButton.setEnabled(true);
                 blackButton.setEnabled(true);
                 sunsetButton.setEnabled(true);
-                whiteButton.setEnabled(true);
+                whiteButton.setEnabled(true);*/
                 disconnectBT.setEnabled(true);
             }
 
@@ -1273,5 +1296,131 @@ public class Main_Screen extends Activity implements Colors.colorChangedListener
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onColorChanged(int color){
+        /* Colors received from colorpicker in ARGB so remove alpha */
+        color = (color & 0xFFFFFF);
+        String sColor = Integer.toString(colorWheelColorPicked) + ")";
+        /* better way to do this but I don't want to mess up the sockets */
+        if(mDevices[0].selected && mDevices[0].enabled) {
+            try {
+                mBTSocket.getOutputStream().write(sColor.getBytes());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        if(mDevices[1].selected && mDevices[1].enabled) {
+            try {
+                mBTSocket2.getOutputStream().write(sColor.getBytes());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        if(mDevices[2].selected && mDevices[2].enabled) {
+            try {
+                mBTSocket3.getOutputStream().write(sColor.getBytes());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        if(mDevices[3].selected && mDevices[3].enabled) {
+            try {
+                mBTSocket4.getOutputStream().write(sColor.getBytes());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Override
+    public void onBrightnessChanged(int brightness){
+        Toast.makeText(this, "brightness: " + Integer.toString(brightness), Toast.LENGTH_SHORT).show();
+        brightness = brightness / 25;
+        brightness = brightness * 25;
+            String sBrightness = Integer.toString(brightness) + "$";
+            if (mDevices[0].selected  && mDevices[0].enabled) {
+                try {
+                    mBTSocket.getOutputStream().write(sBrightness.getBytes());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (mDevices[1].selected  && mDevices[1].enabled) {
+                try {
+                    mBTSocket2.getOutputStream().write(sBrightness.getBytes());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (mDevices[2].selected && mDevices[2].enabled) {
+                try {
+                    mBTSocket3.getOutputStream().write(sBrightness.getBytes());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (mDevices[3].selected  && mDevices[3].enabled) {
+                try {
+                    mBTSocket4.getOutputStream().write(sBrightness.getBytes());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+    }
+
+    @Override
+    public void onWhiteTemperatureChanged(int whiteTemp){
+        Toast.makeText(this, "whiteTemp: " + Integer.toString(whiteTemp), Toast.LENGTH_SHORT).show();
+
+        /* Validation to make sure we dont send crazy numbers */
+        if (whiteTemp > 6){
+            whiteTemp = 6;
+        }else if (whiteTemp < 1){
+            whiteTemp = 1;
+        }
+        String sWhiteTemp = Integer.toString(whiteTemp) + "?";
+        if (mDevices[0].selected && mDevices[0].enabled) {
+            try {
+                mBTSocket.getOutputStream().write(sWhiteTemp.getBytes());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        if (mDevices[0].selected && mDevices[1].enabled) {
+            try {
+                mBTSocket2.getOutputStream().write(sWhiteTemp.getBytes());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        if (mDevices[0].selected && mDevices[2].enabled) {
+            try {
+                mBTSocket3.getOutputStream().write(sWhiteTemp.getBytes());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        if (mDevices[0].selected && mDevices[3].enabled) {
+            try {
+                mBTSocket4.getOutputStream().write(sWhiteTemp.getBytes());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Override
+    public void onDeviceAdded(Device device){
+        Toast.makeText(this, "Device added: " + device.name, Toast.LENGTH_SHORT).show();
+
+    }
+
+    @Override
+    public void onDeviceRemoved(Device device){
+        Toast.makeText(this, "Device removed: " + device.name, Toast.LENGTH_SHORT).show();
+
     }
 }
