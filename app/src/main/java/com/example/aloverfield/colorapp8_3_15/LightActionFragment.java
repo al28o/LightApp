@@ -6,7 +6,10 @@ import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CompoundButton;
 import android.widget.SeekBar;
+import android.widget.Switch;
+import android.widget.TextView;
 
 
 public class LightActionFragment extends Fragment {
@@ -19,11 +22,17 @@ public class LightActionFragment extends Fragment {
         public void onWhiteTemperatureChanged(int whiteTemp);
     }
 
+    private TextView titleView;
+    private Switch onOffSwitch;
+    private int savedBrightness = 205;
+
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+                             final Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_light_action, container, false);
+
+        titleView = (TextView) view.findViewById(R.id.actionDeviceTitle);
 
         ColorPicker colorPicker = (ColorPicker) view.findViewById(R.id.colorPicker);
 
@@ -38,8 +47,8 @@ public class LightActionFragment extends Fragment {
             }
         });
 
-        SeekBar brightnessBar = (SeekBar) view.findViewById(R.id.brightnessBar);
-        brightnessBar.setProgress(5);
+        final SeekBar brightnessBar = (SeekBar) view.findViewById(R.id.brightnessBar);
+        brightnessBar.setProgress(205);
         brightnessBar.incrementProgressBy(25);
         brightnessBar.setMax(255);
         brightnessBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -80,6 +89,19 @@ public class LightActionFragment extends Fragment {
         });
 
 
+        onOffSwitch = (Switch) view.findViewById(R.id.onOffSwitch);
+
+        onOffSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                if (!b){
+                    savedBrightness = brightnessBar.getProgress();
+                    brightnessBar.setProgress(5);
+                }else{
+                    brightnessBar.setProgress(savedBrightness);
+                }
+            }
+        });
 
         return view;
 
@@ -94,6 +116,10 @@ public class LightActionFragment extends Fragment {
         }catch(ClassCastException e){
             throw new ClassCastException(activity.toString() + "must implement OnLightValueChangedListener.");
         }
+    }
+
+    public void setFragmentTitle(String title){
+        titleView.setText(title);
     }
 
 

@@ -12,6 +12,8 @@ public class Device implements Parcelable {
     public String name;
     public int imageID;
     public boolean selected = false;
+
+    /* For debugging on an emulator, set to true */
     public boolean enabled = false;
 
     public enum DeviceType{

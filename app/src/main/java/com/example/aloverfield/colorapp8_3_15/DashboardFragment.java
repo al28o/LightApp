@@ -21,8 +21,9 @@ public class DashboardFragment extends Fragment {
     private OnDevicesSelectedChangedListener mCallback;
 
     public interface OnDevicesSelectedChangedListener {
-        public void onDeviceAdded(Device device);
-        public void onDeviceRemoved(Device device);
+        public void onDeviceAdded(int pos);
+        public void onDeviceRemoved(int pos);
+        public void onDeviceLongClick(int pos);
     }
 
     private GridView gridView;
@@ -51,28 +52,34 @@ public class DashboardFragment extends Fragment {
         gridView.setAdapter(new DeviceAdapter(view.getContext()));
 
 
+        gridView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> adapterView, View view, int i, long l) {
+                if (mDevices[i].enabled) {
+                    mCallback.onDeviceLongClick(i);
+                }else{
+                    Toast.makeText(view.getContext(), mDevices[i].name + " is disabled.", Toast.LENGTH_LONG).show();
+                }
+               return true;
+            }
+        });
         gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long length) {
                 /* get initial view padding. Setting new background resets padding. */
-                int t = view.getPaddingTop();
-                int b = view.getPaddingBottom();
-                int l = view.getPaddingLeft();
-                int r = view.getPaddingRight();
+
                 Device device = mDevices[i];
 
                 if (device.enabled){
                     /* set background based on if it is selected or unselected */
                     device.selected = !device.selected;
                     if (device.selected) {
-                        view.setBackgroundResource(R.drawable.selected_gridview_item);
-                        mCallback.onDeviceAdded(device);
+                        mCallback.onDeviceAdded(i);
 
                     }else{
-                        view.setBackgroundResource(R.drawable.unselected_gridview_item);
-                        mCallback.onDeviceRemoved(device);
+                        mCallback.onDeviceRemoved(i);
                     }
-                    view.setPadding(l,t,r,b);
+
                 }else{
                     Toast.makeText(view.getContext(), device.name + " is disabled.", Toast.LENGTH_LONG).show();
                 }
@@ -85,6 +92,25 @@ public class DashboardFragment extends Fragment {
 
     }
 
+    public void selectDeviceView(int pos){
+        View view = gridView.getChildAt(pos);
+        int t = view.getPaddingTop();
+        int b = view.getPaddingBottom();
+        int l = view.getPaddingLeft();
+        int r = view.getPaddingRight();
+        view.setBackgroundResource(R.drawable.selected_gridview_item);
+        view.setPadding(l,t,r,b);
+    }
+
+    public void deselectDeviceView(int pos){
+        View view = gridView.getChildAt(pos);
+        int t = view.getPaddingTop();
+        int b = view.getPaddingBottom();
+        int l = view.getPaddingLeft();
+        int r = view.getPaddingRight();
+        view.setBackgroundResource(R.drawable.unselected_gridview_item);
+        view.setPadding(l,t,r,b);
+    }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -147,5 +173,9 @@ public class DashboardFragment extends Fragment {
         }
     }
 
+    public void performClickDevice(int pos){
+        View view = gridView.getChildAt(pos);
+        gridView.performItemClick(view, pos, 0);
+    }
 
 }
