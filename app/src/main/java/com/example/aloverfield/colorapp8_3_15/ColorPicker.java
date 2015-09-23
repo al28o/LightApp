@@ -205,26 +205,6 @@ public class ColorPicker extends View {
 	private float[] mHSV = new float[3];
 
 	/**
-	 * {@code SVBar} instance used to control the Saturation/Value bar.
-	 */
-	private SVBar mSVbar = null;
-
-	/**
-	 * {@code OpacityBar} instance used to control the Opacity bar.
-	 */
-	private OpacityBar mOpacityBar = null;
-
-	/**
-	 * {@code SaturationBar} instance used to control the Saturation bar.
-	 */
-	private SaturationBar mSaturationBar = null;
-
-	/**
-	 * {@code ValueBar} instance used to control the Value bar.
-	 */
-	private ValueBar mValueBar = null;
-
-	/**
 	 * {@code onColorChangedListener} instance of the onColorChangedListener
 	 */
 	private OnColorChangedListener onColorChangedListener;
@@ -526,43 +506,9 @@ public class ColorPicker extends View {
 		mPointerColor.setColor(calculateColor(mAngle));
 		mCenterNewPaint.setColor(calculateColor(mAngle));
 
-		// check of the instance isn't null
-		if (mOpacityBar != null) {
-			// set the value of the opacity
-			mOpacityBar.setColor(mColor);
-			mOpacityBar.setOpacity(Color.alpha(color));
-		}
 
-		// check if the instance isn't null
-		if (mSVbar != null) {
-			// the array mHSV will be filled with the HSV values of the color.
-			Color.colorToHSV(color, mHSV);
-			mSVbar.setColor(mColor);
 
-			// because of the design of the Saturation/Value bar,
-			// we can only use Saturation or Value every time.
-			// Here will be checked which we shall use.
-			if (mHSV[1] < mHSV[2]) {
-				mSVbar.setSaturation(mHSV[1]);
-			} else { // if (mHSV[1] > mHSV[2]) {
-				mSVbar.setValue(mHSV[2]);
-			}
-		}
 
-		if (mSaturationBar != null) {
-			Color.colorToHSV(color, mHSV);
-			mSaturationBar.setColor(mColor);
-			mSaturationBar.setSaturation(mHSV[1]);
-		}
-
-		if (mValueBar != null && mSaturationBar == null) {
-			Color.colorToHSV(color, mHSV);
-			mValueBar.setColor(mColor);
-			mValueBar.setValue(mHSV[2]);
-		} else if (mValueBar != null) {
-			Color.colorToHSV(color, mHSV);
-			mValueBar.setValue(mHSV[2]);
-		}
 
 		invalidate();
 	}
@@ -625,21 +571,7 @@ public class ColorPicker extends View {
 
 				setNewCenterColor(mCenterNewColor = calculateColor(mAngle));
 				
-				if (mOpacityBar != null) {
-					mOpacityBar.setColor(mColor);
-				}
 
-				if (mValueBar != null) {
-					mValueBar.setColor(mColor);
-				}
-
-				if (mSaturationBar != null) {
-					mSaturationBar.setColor(mColor);
-				}
-
-				if (mSVbar != null) {
-					mSVbar.setColor(mColor);
-				}
 
 				invalidate();
 			}
@@ -687,43 +619,7 @@ public class ColorPicker extends View {
 		return new float[] { x, y };
 	}
 
-	/**
-	 * Add a Saturation/Value bar to the color wheel.
-	 * 
-	 * @param bar
-	 *            The instance of the Saturation/Value bar.
-	 */
-	public void addSVBar(SVBar bar) {
-		mSVbar = bar;
-		// Give an instance of the color picker to the Saturation/Value bar.
-		mSVbar.setColorPicker(this);
-		mSVbar.setColor(mColor);
-	}
 
-	/**
-	 * Add a Opacity bar to the color wheel.
-	 * 
-	 * @param bar
-	 *            The instance of the Opacity bar.
-	 */
-	public void addOpacityBar(OpacityBar bar) {
-		mOpacityBar = bar;
-		// Give an instance of the color picker to the Opacity bar.
-		mOpacityBar.setColorPicker(this);
-		mOpacityBar.setColor(mColor);
-	}
-
-	public void addSaturationBar(SaturationBar bar) {
-		mSaturationBar = bar;
-		mSaturationBar.setColorPicker(this);
-		mSaturationBar.setColor(mColor);
-	}
-
-	public void addValueBar(ValueBar bar) {
-		mValueBar = bar;
-		mValueBar.setColorPicker(this);
-		mValueBar.setColor(mColor);
-	}
 
 	/**
 	 * Change the color of the center which indicates the new color.
@@ -775,78 +671,7 @@ public class ColorPicker extends View {
 		return mShowCenterOldColor;
 	}
 
-	/**
-	 * Used to change the color of the {@code OpacityBar} used by the
-	 * {@code SVBar} if there is an change in color.
-	 * 
-	 * @param color
-	 *            int of the color used to change the opacity bar color.
-	 */
-	public void changeOpacityBarColor(int color) {
-		if (mOpacityBar != null) {
-			mOpacityBar.setColor(color);
-		}
-	}
 
-	/**
-	 * Used to change the color of the {@code SaturationBar}.
-	 * 
-	 * @param color
-	 *            int of the color used to change the opacity bar color.
-	 */
-	public void changeSaturationBarColor(int color) {
-		if (mSaturationBar != null) {
-			mSaturationBar.setColor(color);
-		}
-	}
-
-	/**
-	 * Used to change the color of the {@code ValueBar}.
-	 * 
-	 * @param color
-	 *            int of the color used to change the opacity bar color.
-	 */
-	public void changeValueBarColor(int color) {
-		if (mValueBar != null) {
-			mValueBar.setColor(color);
-		}
-	}
-	
-	/**
-	 * Checks if there is an {@code OpacityBar} connected.
-	 * 
-	 * @return true or false.
-	 */
-	public boolean hasOpacityBar(){
-		return mOpacityBar != null;
-	}
-	
-	/**
-	 * Checks if there is a {@code ValueBar} connected.
-	 * 
-	 * @return true or false.
-	 */
-	public boolean hasValueBar(){
-		return mValueBar != null;
-	}
-	
-	/**
-	 * Checks if there is a {@code SaturationBar} connected.
-	 * 
-	 * @return true or false.
-	 */
-	public boolean hasSaturationBar(){
-		return mSaturationBar != null;
-	}
-	
-	/**
-	 * Checks if there is a {@code SVBar} connected.
-	 * 
-	 * @return true or false.
-	 */
-	public boolean hasSVBar(){
-		return mSVbar != null;
-	}
 
 	@Override
 	protected Parcelable onSaveInstanceState() {

@@ -11,21 +11,32 @@ public class Device implements Parcelable {
     public DeviceType deviceType;
     public String name;
     public int imageID;
+
+    /* whether or not this device is selected in the dashboard */
     public boolean selected = false;
 
     /* For debugging on an emulator, set to true */
     public boolean enabled = false;
 
+    /* will be relevant later when we have multiple devices */
     public enum DeviceType{
         LIGHT
     }
 
+    /* Constructor. Will need to change imageID when we have
+        multiple devices. maybe use a switch case based on
+        deviceType
+     */
     public Device(DeviceType type, String title){
         deviceType = type;
         name = title;
         imageID= R.drawable.ic_brightness_low_white_48dp;
     }
 
+    /*
+        From here down: Methods to implement parcelable so we can send our
+        array of devices from our activity to our fragment.
+     */
     public int describeContents() {
         return 0;
     }

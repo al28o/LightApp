@@ -1,6 +1,5 @@
 package com.example.aloverfield.colorapp8_3_15;
 
-import android.app.Activity;
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -26,7 +25,7 @@ public class Main_Screen extends ActionBarActivity implements
     private UUID mDeviceUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"); // Standard SPP UUID
 
 
-    private static final String TAG = "BlueTest5-MainActivity";
+    private static final String TAG = "ColorApp";
     private int mMaxChars = 50000;//Default
     private BluetoothSocket mBTSocket;
     private BluetoothSocket mBTSocket2;
@@ -35,12 +34,12 @@ public class Main_Screen extends ActionBarActivity implements
 
     private boolean mIsUserInitiatedDisconnect = false;
 
+    /* Request codes for things like enabling BT and connecting to a BT device */
     private int REQUEST_ENABLE_BT = 1;
     private int REQUEST_BT_DEVICE = 9;
+
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothDevice btDevice;
-    private boolean bStop = false;
-
 
     private boolean mIsBluetoothConnected = false;
     private boolean mIsBluetoothConnected2 = false;
@@ -49,6 +48,13 @@ public class Main_Screen extends ActionBarActivity implements
 
     private ProgressDialog progressDialog;
 
+    /* For now this is where we hard code our devices
+        mDevices[0] is "connected" with mIsBluetoothConnected
+        mDevices[1] is "connected" with mIsBluetoothConnected2
+        ...
+
+        See Device.java for attributes and methods
+     */
     private Device[] mDevices = {
             new Device(Device.DeviceType.LIGHT, "Light 1"),
             new Device(Device.DeviceType.LIGHT, "Light 2"),
@@ -56,19 +62,30 @@ public class Main_Screen extends ActionBarActivity implements
             new Device(Device.DeviceType.LIGHT, "Light 4")
     };
 
+    /* Set to true on long click of one device to signal that we
+        want to select more than one device
+     */
     private boolean selectingMultiple = false;
 
+    /* Used to avoid crashes on emulator or just check out the UI.
+        Currently there should be checks in place to avoid crashes
+        making this obsolete
+     */
     private static boolean DEBUG = false;
 
+    /* Save references to our fragments so we can call their class methods
+        such as selecting a device or selecting a new color
+     */
     private LightActionFragment actionFragment;
     private DashboardFragment dashboardFragment;
+
+    /* Collection of devices that are currently selected */
     private List<Device> selectedDevices;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        //setContentView(R.layout.activity_main_screen);
         setContentView(R.layout.activity_main);
 
 
@@ -93,27 +110,36 @@ public class Main_Screen extends ActionBarActivity implements
 
         }
 
+        /* Not sure if this is needed/wanted. I think it helps choose portrait vs landscape */
         ActivityHelper.initialize(this);
-        this.activity = this;
+
 
 
         /* Used for testing on the emulator. In product, set static variable DEBUG above to false */
         if (!DEBUG) {
+
             mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
             if (mBluetoothAdapter == null) {
                 Toast.makeText(getApplicationContext(), "Bluetooth not supported", Toast.LENGTH_LONG).show();
             }else {
-
+                /* if we do have BT support, try to enable it if not already. */
                 if (!mBluetoothAdapter.isEnabled()) {
                     Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
                     startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+                }else{
+                    /* Bluetooth is enabled so we want to select our device
+                        TODO: Make sure this is actually what we want to do
+                     */
+                    Intent intent = new Intent(Main_Screen.this, BluetoothDevices.class);
+                    startActivityForResult(intent, REQUEST_BT_DEVICE);
                 }
             }
         }
 
+        /* initiate a new list to track our selected devices */
         selectedDevices = new LinkedList<>();
 
-        /*
+        /* TODO: Check if we want/need this button. Might go in a settings page
         devices.setOnClickListener(new View.OnClickListener() {
 
             @Override
@@ -125,7 +151,8 @@ public class Main_Screen extends ActionBarActivity implements
 
 
 
-        /*disconnectBT.setOnClickListener(new View.OnClickListener() {
+        /* TODO: Check if we need this. why would we need to disconnect?
+        disconnectBT.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 new DisConnectBT().execute();
@@ -133,12 +160,18 @@ public class Main_Screen extends ActionBarActivity implements
         });*/
     }
 
-
+    /*
+        Method that receives a result code when activities that were launched from this
+         activity finish with a result code. These activities are launched with
+         startActivityForResult(...). Make sure to use static int devlared at top
+         for request codes.
+     */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_ENABLE_BT) {
-
+            /* If we just returned from enabling BT */
             if(resultCode == RESULT_OK){
+                /* Everything was okay, we need to pick a device now */
                 Intent intent = new Intent(Main_Screen.this, BluetoothDevices.class);
                 startActivityForResult(intent, REQUEST_BT_DEVICE);
             }
@@ -146,6 +179,7 @@ public class Main_Screen extends ActionBarActivity implements
                 //Write your code if there's no result
             }
         }else if (requestCode == REQUEST_BT_DEVICE){
+            /* Just got back from picking a device */
             if (resultCode == RESULT_OK){
                 btDevice = data.getParcelableExtra("btDevice");
                 new ConnectBT().execute();
@@ -155,13 +189,14 @@ public class Main_Screen extends ActionBarActivity implements
         }
     }
 
+    /* method to disable communication to all devices because we couldnt get BT working */
     public void disableAllDevices(){
         for (int i = 0; i < mDevices.length; i++){
             mDevices[i].enabled = false;
         }
     }
 
-
+    /* TODO: Decide if this is needed or not */
     private class DisConnectBT extends AsyncTask<Void, Void, Void> {
 
         @Override
@@ -344,8 +379,8 @@ public class Main_Screen extends ActionBarActivity implements
         return true;
     }
 
-    Activity activity;
 
+    /* This is where we'll launch a settings activity */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
@@ -361,6 +396,10 @@ public class Main_Screen extends ActionBarActivity implements
         return super.onOptionsItemSelected(item);
     }
 
+    /* Implemented method for LightActionFragment interface OnLightValueChangedListener
+        param color - ARGB int value returned from the color wheel.
+        affects - sends color to selected devices
+     */
     @Override
     public void onColorChanged(int color){
         /* Colors received from colorpicker in ARGB so remove alpha */
@@ -371,10 +410,13 @@ public class Main_Screen extends ActionBarActivity implements
     }
 
 
-
+    /* Implemented method for LightActionFragment interface OnLightValueChangedListener
+            param brightness - int value from brightness slider (5-255)
+            affects - sends brightness to selected devices
+         */
     @Override
     public void onBrightnessChanged(int brightness){
-        Toast.makeText(this, "brightness: " + Integer.toString(brightness), Toast.LENGTH_SHORT).show();
+        //Toast.makeText(this, "brightness: " + Integer.toString(brightness), Toast.LENGTH_SHORT).show();
         brightness = brightness / 25;
         brightness = brightness * 25;
             String sBrightness = Integer.toString(brightness) + "$";
@@ -382,9 +424,14 @@ public class Main_Screen extends ActionBarActivity implements
 
     }
 
+    /* TODO: Mike isn't sure exactly what white temperature means...
+        Implemented method for LightActionFragment interface OnLightValueChangedListener
+            param whiteTemp -  int value returned from white temp slider (1-6).
+            affects - sends white temp to selected devices
+         */
     @Override
     public void onWhiteTemperatureChanged(int whiteTemp){
-        Toast.makeText(this, "whiteTemp: " + Integer.toString(whiteTemp), Toast.LENGTH_SHORT).show();
+        //Toast.makeText(this, "whiteTemp: " + Integer.toString(whiteTemp), Toast.LENGTH_SHORT).show();
 
         /* Validation to make sure we dont send crazy numbers */
         if (whiteTemp > 6){
@@ -397,6 +444,10 @@ public class Main_Screen extends ActionBarActivity implements
     }
 
 
+    /* generic method to send a formatted sting to all currently selected devices
+        param signal - string signal to send to devices. pre formatted
+        affects - sends bytes to attached sockets
+     */
     public void sendSignaltoDevices(String signal){
         /* to prevent crashes on emulator... */
         if (!DEBUG) {
@@ -444,7 +495,10 @@ public class Main_Screen extends ActionBarActivity implements
             }
         }
     }
-
+    /* Implemented method for DashboardFragment interface OnDevicesSelectedChangedListener
+            param pos - device position in gridview. used to select device from mDevices
+            updates - dashboard fragment title, selection in gridview
+         */
     @Override
     public void onDeviceAdded(int pos){
         if (selectingMultiple){
@@ -456,10 +510,14 @@ public class Main_Screen extends ActionBarActivity implements
             actionFragment.setFragmentTitle(mDevices[pos].name + " Selected");
         }
 
-        Toast.makeText(this, "Device added: " + mDevices[pos].name +" - Selected: " + Integer.toString(selectedDevices.size()), Toast.LENGTH_SHORT).show();
+        //Toast.makeText(this, "Device added: " + mDevices[pos].name +" - Selected: " + Integer.toString(selectedDevices.size()), Toast.LENGTH_SHORT).show();
 
     }
 
+    /* Implemented method for DashboardFragment interface OnDevicesSelectedChangedListener
+            param pos - device position in gridview. used to select device from mDevices
+            updates - dashboard fragment title, selection in gridview
+         */
     @Override
     public void onDeviceRemoved(int pos){
         deselectDevice(pos);
@@ -469,12 +527,17 @@ public class Main_Screen extends ActionBarActivity implements
         }else{
             actionFragment.setFragmentTitle(Integer.toString(selectedDevices.size()) + " Devices Selected");
         }
-        Toast.makeText(this, "Device removed: " + mDevices[pos].name+" - Selected: " + Integer.toString(selectedDevices.size()), Toast.LENGTH_SHORT).show();
+        //Toast.makeText(this, "Device removed: " + mDevices[pos].name+" - Selected: " + Integer.toString(selectedDevices.size()), Toast.LENGTH_SHORT).show();
 
     }
+
+    /* Implemented method for DashboardFragment interface OnDevicesSelectedChangedListener
+            param pos - device position in gridview. used to select device from mDevices
+            updates - if device is long clicked, we want to select multiple
+         */
     @Override
     public void onDeviceLongClick(int pos){
-        Toast.makeText(this, "Device long click: " + mDevices[pos].name, Toast.LENGTH_SHORT).show();
+        //Toast.makeText(this, "Device long click: " + mDevices[pos].name, Toast.LENGTH_SHORT).show();
         deselectAllDevices();
         selectDevice(pos);
         selectingMultiple = true;
@@ -482,18 +545,31 @@ public class Main_Screen extends ActionBarActivity implements
 
     }
 
+    /* Method to handle all things involved with selecting a device including updating
+        its selected status, adding it to selectedDevices, and updating the item background
+        in the gridview
+            param pos - device position in gridview. used to select device from mDevices
+            updates - selection in gridview, selectedDevices
+         */
     public void selectDevice(int pos){
         mDevices[pos].selected = true;
         selectedDevices.add(mDevices[pos]);
         dashboardFragment.selectDeviceView(pos);
     }
 
+    /* Method to handle all things involved with deselecting a device including updating
+        its selected status, adding it to selectedDevices, and updating the item background
+        in the gridview
+            param pos - device position in gridview. used to select device from mDevices
+            updates - selection in gridview, selectedDevices
+         */
     public void deselectDevice(int pos){
         mDevices[pos].selected = false;
         selectedDevices.remove(mDevices[pos]);
         dashboardFragment.deselectDeviceView(pos);
     }
 
+    /* Method to deselect all devices. */
     public void deselectAllDevices(){
         for (int i = 0; i < mDevices.length; i++){
             if (mDevices[i].selected){
