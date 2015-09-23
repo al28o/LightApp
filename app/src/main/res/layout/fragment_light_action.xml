@@ -1,0 +1,59 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity"
+    android:orientation="vertical"
+    android:background="@color/primaryLayer"
+    android:gravity="center_horizontal"
+    android:paddingTop="@dimen/fragment_vertical_padding"
+    android:paddingBottom="@dimen/fragment_vertical_padding"
+    android:paddingRight="@dimen/fragment_horizontal_padding"
+    android:paddingLeft="@dimen/fragment_horizontal_padding">
+
+    <TextView
+        android:id="@+id/actionDeviceTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="No Devices Selected"
+        android:textColor="@color/textColor"/>
+
+
+    <com.example.aloverfield.colorapp8_3_15.ColorPicker
+        android:id="@+id/colorPicker"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Brightness"
+        android:textColor="@color/textColor"/>
+    <SeekBar
+        android:id="@+id/brightnessBar"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:max="255"
+        />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="White Temperature"
+        android:textColor="@color/textColor"/>
+    <SeekBar
+        android:id="@+id/whiteTempBar"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:max="6"
+
+        />
+
+    <Switch
+        android:id="@+id/onOffSwitch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="8dp"
+        android:checked="true"
+        />
+
+</LinearLayout>

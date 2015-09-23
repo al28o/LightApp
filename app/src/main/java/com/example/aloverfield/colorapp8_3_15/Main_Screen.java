@@ -1,35 +1,31 @@
 package com.example.aloverfield.colorapp8_3_15;
 
-import android.app.Activity;
-import android.app.AlertDialog;
-import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
-import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.view.WindowManager;
-import android.widget.Button;
-import android.widget.SeekBar;
 import android.widget.Toast;
 
 import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.UUID;
 
 
-public class Main_Screen extends Activity implements Colors.colorChangedListener{
+public class Main_Screen extends ActionBarActivity implements
+        LightActionFragment.OnLightValueChangedListener, DashboardFragment.OnDevicesSelectedChangedListener{
 
     private UUID mDeviceUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"); // Standard SPP UUID
 
 
-    private static final String TAG = "BlueTest5-MainActivity";
+    private static final String TAG = "ColorApp";
     private int mMaxChars = 50000;//Default
     private BluetoothSocket mBTSocket;
     private BluetoothSocket mBTSocket2;
@@ -38,129 +34,112 @@ public class Main_Screen extends Activity implements Colors.colorChangedListener
 
     private boolean mIsUserInitiatedDisconnect = false;
 
+    /* Request codes for things like enabling BT and connecting to a BT device */
     private int REQUEST_ENABLE_BT = 1;
+    private int REQUEST_BT_DEVICE = 9;
+
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothDevice btDevice;
-    private boolean bStop = false;
-
 
     private boolean mIsBluetoothConnected = false;
     private boolean mIsBluetoothConnected2 = false;
     private boolean mIsBluetoothConnected3 = false;
     private boolean mIsBluetoothConnected4 = false;
-    private boolean sendToLights1 = false;
-    private boolean sendToLights2 = false;
-    private boolean sendToLights3 = false;
-    private boolean sendToLights4 = false;
+
     private ProgressDialog progressDialog;
 
-    private SeekBar brightnessBar;
+    /* For now this is where we hard code our devices
+        mDevices[0] is "connected" with mIsBluetoothConnected
+        mDevices[1] is "connected" with mIsBluetoothConnected2
+        ...
 
-    private Button redButton;
-    private Button lightRedButton;
-    private Button orangeButton;
-    private Button greenButton;
-    private Button lightGreenButton;
-    private Button yellowButton;
-    private Button blueButton;
-    private Button lightBlueButton;
-    private Button purpleButton;
-    private Button blackButton;
-    private Button whiteButton;
-    private Button sunsetButton;
-    private Button disconnectBT;
-    private Button devices;
-    private Button colorWheel;
-    private Button lights1;
-    private Button lights2;
-    private Button lights3;
-    private Button lights4;
-    private Button brightnessDown;
-    private Button brightnessUp;
-    private Button whiteTemp1;
-    private Button whiteTemp2;
-    private Button whiteTemp3;
-    private Button whiteTemp4;
-    private Button whiteTemp5;
-    private Button whiteTemp6;
+        See Device.java for attributes and methods
+     */
+    private Device[] mDevices = {
+            new Device(Device.DeviceType.LIGHT, "Light 1"),
+            new Device(Device.DeviceType.LIGHT, "Light 2"),
+            new Device(Device.DeviceType.LIGHT, "Light 3"),
+            new Device(Device.DeviceType.LIGHT, "Light 4")
+    };
 
-    private int color;
-    private String color2;
-    private int colorWheelColorPicked;
-    private String brightnessSetting;
-    private int whiteTemp;
-    private String whiteTempStr;
-    private int brightness;
-    private final int brightnessMin = 5;
-    private final int brightnessMax = 255;
+    /* Set to true on long click of one device to signal that we
+        want to select more than one device
+     */
+    private boolean selectingMultiple = false;
+
+    /* Used to avoid crashes on emulator or just check out the UI.
+        Currently there should be checks in place to avoid crashes
+        making this obsolete
+     */
+    private static boolean DEBUG = false;
+
+    /* Save references to our fragments so we can call their class methods
+        such as selecting a device or selecting a new color
+     */
+    private LightActionFragment actionFragment;
+    private DashboardFragment dashboardFragment;
+
+    /* Collection of devices that are currently selected */
+    private List<Device> selectedDevices;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        //setContentView(R.layout.activity_main_screen);
-        setContentView(R.layout.activity_main2);
+        setContentView(R.layout.activity_main);
 
+
+        /* Add dashboard to the left fragment container */
+        if (findViewById(R.id.left_fragment_container) != null){
+            if (savedInstanceState != null){
+                return;
+            }
+             dashboardFragment = DashboardFragment.newInstance(mDevices);
+            getSupportFragmentManager().beginTransaction()
+                    .add(R.id.left_fragment_container, dashboardFragment).commit();
+        }
+
+        /* Add light action fragment to right container by default (master) */
+        if (findViewById(R.id.right_fragment_container) != null){
+            if (savedInstanceState != null){
+                return;
+            }
+             actionFragment = new LightActionFragment();
+            getSupportFragmentManager().beginTransaction()
+                    .add(R.id.right_fragment_container, actionFragment).commit();
+
+        }
+
+        /* Not sure if this is needed/wanted. I think it helps choose portrait vs landscape */
         ActivityHelper.initialize(this);
-        this.activity = this;
 
-        brightness = brightnessMax;
 
-        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        if (mBluetoothAdapter == null) {
-            Toast.makeText(getApplicationContext(), "Bluetooth not supported", Toast.LENGTH_LONG).show();
+
+        /* Used for testing on the emulator. In product, set static variable DEBUG above to false */
+        if (!DEBUG) {
+
+            mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+            if (mBluetoothAdapter == null) {
+                Toast.makeText(getApplicationContext(), "Bluetooth not supported", Toast.LENGTH_LONG).show();
+            }else {
+                /* if we do have BT support, try to enable it if not already. */
+                if (!mBluetoothAdapter.isEnabled()) {
+                    Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                    startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+                }else{
+                    /* Bluetooth is enabled so we want to select our device
+                        TODO: Make sure this is actually what we want to do
+                     */
+                    Intent intent = new Intent(Main_Screen.this, BluetoothDevices.class);
+                    startActivityForResult(intent, REQUEST_BT_DEVICE);
+                }
+            }
         }
 
-        if (!mBluetoothAdapter.isEnabled()) {
-            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-        }
-//
-//        AlertDialog.Builder adb = new AlertDialog.Builder(this);
-//        Dialog d = adb.setView(new View(this)).create();
-//        // (That new View is just there to have something inside the dialog that can grow big enough to cover the whole screen.)
-//
-//        WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
-//        lp.copyFrom(d.getWindow().getAttributes());
-//        lp.width = WindowManager.LayoutParams.MATCH_PARENT;
-//        lp.height = WindowManager.LayoutParams.MATCH_PARENT;
-//        d.show();
-//        d.getWindow().setAttributes(lp);
+        /* initiate a new list to track our selected devices */
+        selectedDevices = new LinkedList<>();
 
-
-        redButton = (Button) findViewById(R.id.redButton);
-        lightRedButton = (Button) findViewById(R.id.lightRedButton);
-        orangeButton = (Button) findViewById(R.id.orangeButton);
-        greenButton = (Button) findViewById(R.id.greenButton);
-        lightGreenButton = (Button) findViewById(R.id.lightGreenButton);
-        yellowButton = (Button) findViewById(R.id.yellowButton);
-        blueButton = (Button) findViewById(R.id.blueButton);
-        lightBlueButton = (Button) findViewById(R.id.lightBlueButton);
-        purpleButton = (Button) findViewById(R.id.purpleButton);
-        blackButton = (Button) findViewById(R.id.blackButton);
-        whiteButton = (Button) findViewById(R.id.whiteButton);
-        sunsetButton = (Button) findViewById(R.id.sunsetButton);
-        disconnectBT = (Button) findViewById(R.id.disconnectBT);
-        devices = (Button) findViewById(R.id.devices);
-        colorWheel = (Button) findViewById(R.id.colorWheel);
-        lights1 = (Button) findViewById(R.id.lights1);
-        lights2 = (Button) findViewById(R.id.lights2);
-        lights3 = (Button) findViewById(R.id.lights3);
-        lights4 = (Button) findViewById(R.id.lights4);
-        brightnessBar = (SeekBar) findViewById(R.id.brightnessSeekBar);
-        brightnessUp = (Button) findViewById(R.id.brightnessUp);
-        brightnessDown = (Button) findViewById(R.id.brightnessDown);
-        whiteTemp1 = (Button) findViewById(R.id.whiteTemp1);
-        whiteTemp2 = (Button) findViewById(R.id.whiteTemp2);
-        whiteTemp3 = (Button) findViewById(R.id.whiteTemp3);
-        whiteTemp4 = (Button) findViewById(R.id.whiteTemp4);
-        whiteTemp5 = (Button) findViewById(R.id.whiteTemp5);
-        whiteTemp6 = (Button) findViewById(R.id.whiteTemp6);
-
-        brightnessBar.setProgress(5);
-        brightnessBar.incrementProgressBy(25);
-        brightnessBar.setMax(255);
-
+        /* TODO: Check if we want/need this button. Might go in a settings page
         devices.setOnClickListener(new View.OnClickListener() {
 
             @Override
@@ -168,901 +147,56 @@ public class Main_Screen extends Activity implements Colors.colorChangedListener
                 Intent intent = new Intent(Main_Screen.this, BluetoothDevices.class);
                 startActivityForResult(intent, 1);
             }
-        });
+        });*/
 
-        whiteTemp1.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                whiteTemp = 1;
-                whiteTempStr = Integer.toString(whiteTemp) + "?";
-                if (sendToLights1) {
-                    try {
-                        mBTSocket.getOutputStream().write(whiteTempStr.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if (sendToLights2) {
-                    try {
-                        mBTSocket2.getOutputStream().write(whiteTempStr.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if (sendToLights3) {
-                    try {
-                        mBTSocket3.getOutputStream().write(whiteTempStr.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if (sendToLights4) {
-                    try {
-                        mBTSocket4.getOutputStream().write(whiteTempStr.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
 
-        whiteTemp2.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                whiteTemp = 2;
-                whiteTempStr = Integer.toString(whiteTemp) + "?";
-                if (sendToLights1) {
-                    try {
-                        mBTSocket.getOutputStream().write(whiteTempStr.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if (sendToLights2) {
-                    try {
-                        mBTSocket2.getOutputStream().write(whiteTempStr.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if (sendToLights3) {
-                    try {
-                        mBTSocket3.getOutputStream().write(whiteTempStr.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if (sendToLights4) {
-                    try {
-                        mBTSocket4.getOutputStream().write(whiteTempStr.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
 
-        whiteTemp3.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                whiteTemp = 3;
-                whiteTempStr = Integer.toString(whiteTemp) + "?";
-                if (sendToLights1) {
-                    try {
-                        mBTSocket.getOutputStream().write(whiteTempStr.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if (sendToLights2) {
-                    try {
-                        mBTSocket2.getOutputStream().write(whiteTempStr.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if (sendToLights3) {
-                    try {
-                        mBTSocket3.getOutputStream().write(whiteTempStr.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if (sendToLights4) {
-                    try {
-                        mBTSocket4.getOutputStream().write(whiteTempStr.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
-
-        whiteTemp4.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                whiteTemp = 4;
-                whiteTempStr = Integer.toString(whiteTemp) + "?";
-                if (sendToLights1) {
-                    try {
-                        mBTSocket.getOutputStream().write(whiteTempStr.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if (sendToLights2) {
-                    try {
-                        mBTSocket2.getOutputStream().write(whiteTempStr.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if (sendToLights3) {
-                    try {
-                        mBTSocket3.getOutputStream().write(whiteTempStr.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if (sendToLights4) {
-                    try {
-                        mBTSocket4.getOutputStream().write(whiteTempStr.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
-
-        whiteTemp5.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                whiteTemp = 5;
-                whiteTempStr = Integer.toString(whiteTemp) + "?";
-                if (sendToLights1) {
-                    try {
-                        mBTSocket.getOutputStream().write(whiteTempStr.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if (sendToLights2) {
-                    try {
-                        mBTSocket2.getOutputStream().write(whiteTempStr.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if (sendToLights3) {
-                    try {
-                        mBTSocket3.getOutputStream().write(whiteTempStr.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if (sendToLights4) {
-                    try {
-                        mBTSocket4.getOutputStream().write(whiteTempStr.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
-
-        whiteTemp6.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                whiteTemp = 6;
-                whiteTempStr = Integer.toString(whiteTemp) + "?";
-                if (sendToLights1) {
-                    try {
-                        mBTSocket.getOutputStream().write(whiteTempStr.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if (sendToLights2) {
-                    try {
-                        mBTSocket2.getOutputStream().write(whiteTempStr.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if (sendToLights3) {
-                    try {
-                        mBTSocket3.getOutputStream().write(whiteTempStr.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if (sendToLights4) {
-                    try {
-                        mBTSocket4.getOutputStream().write(whiteTempStr.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
-
-        brightnessBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                progress = progress / 25;
-                progress = progress * 25;
-                brightnessSetting = Integer.toString(progress) + "$";
-                if (sendToLights1) {
-                    try {
-                        mBTSocket.getOutputStream().write(brightnessSetting.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if (sendToLights2) {
-                    try {
-                        mBTSocket2.getOutputStream().write(brightnessSetting.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if (sendToLights3) {
-                    try {
-                        mBTSocket3.getOutputStream().write(brightnessSetting.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if (sendToLights4) {
-                    try {
-                        mBTSocket4.getOutputStream().write(brightnessSetting.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-
-            }
-        });
-
-        brightnessUp.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if((brightness + 50) < brightnessMax) {
-
-                    brightness = brightness + 50;
-                    brightnessSetting = Integer.toString(brightness) + "$";
-                    if (sendToLights1) {
-                        try {
-                            mBTSocket.getOutputStream().write(brightnessSetting.getBytes());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    if (sendToLights2) {
-                        try {
-                            mBTSocket2.getOutputStream().write(brightnessSetting.getBytes());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    if (sendToLights3) {
-                        try {
-                            mBTSocket3.getOutputStream().write(brightnessSetting.getBytes());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    if (sendToLights4) {
-                        try {
-                            mBTSocket4.getOutputStream().write(brightnessSetting.getBytes());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-            }
-        });
-
-        brightnessDown.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if((brightness - 50) > brightnessMin) {
-
-                    brightness = brightness - 50;
-                    brightnessSetting = Integer.toString(brightness) + "$";
-                    if (sendToLights1) {
-                        try {
-                            mBTSocket.getOutputStream().write(brightnessSetting.getBytes());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    if (sendToLights2) {
-                        try {
-                            mBTSocket2.getOutputStream().write(brightnessSetting.getBytes());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    if (sendToLights3) {
-                        try {
-                            mBTSocket3.getOutputStream().write(brightnessSetting.getBytes());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    if (sendToLights4) {
-                        try {
-                            mBTSocket4.getOutputStream().write(brightnessSetting.getBytes());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-            }
-        });
-
-        redButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                color = 0xff0000;
-                color2 = Integer.toString(color) + ")";
-                if(sendToLights1) {
-                    try {
-                        mBTSocket.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights2) {
-                    try {
-                        mBTSocket2.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights3) {
-                    try {
-                        mBTSocket3.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights4) {
-                    try {
-                        mBTSocket4.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
-
-        orangeButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                color = 0xffaa00;
-                color2 = Integer.toString(color) + ")";
-                if(sendToLights1) {
-                    try {
-                        mBTSocket.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights2) {
-                    try {
-                        mBTSocket2.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights3) {
-                    try {
-                        mBTSocket3.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights4) {
-                    try {
-                        mBTSocket4.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
-
-        lightRedButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                color = 0xff5577;
-                color2 = Integer.toString(color) + ")";
-                if(sendToLights1) {
-                    try {
-                        mBTSocket.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights2) {
-                    try {
-                        mBTSocket2.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights3) {
-                    try {
-                        mBTSocket3.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights4) {
-                    try {
-                        mBTSocket4.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
-
-        greenButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                color = 0x00ff00;
-                color2 = Integer.toString(color) + ")";
-                if(sendToLights1) {
-                    try {
-                        mBTSocket.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights2) {
-                    try {
-                        mBTSocket2.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights3) {
-                    try {
-                        mBTSocket3.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights4) {
-                    try {
-                        mBTSocket4.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
-
-        lightGreenButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                color = 0xaaffaa;
-                color2 = Integer.toString(color) + ")";
-                if(sendToLights1) {
-                    try {
-                        mBTSocket.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights2) {
-                    try {
-                        mBTSocket2.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights3) {
-                    try {
-                        mBTSocket3.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights4) {
-                    try {
-                        mBTSocket4.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
-
-        yellowButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                color = 0xffff00;
-                color2 = Integer.toString(color) + ")";
-                if(sendToLights1) {
-                    try {
-                        mBTSocket.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights2) {
-                    try {
-                        mBTSocket2.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights3) {
-                    try {
-                        mBTSocket3.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights4) {
-                    try {
-                        mBTSocket4.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
-
-        blueButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                color = 0x0000ff;
-                color2 = Integer.toString(color) + ")";
-                if(sendToLights1) {
-                    try {
-                        mBTSocket.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights2) {
-                    try {
-                        mBTSocket2.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights3) {
-                    try {
-                        mBTSocket3.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights4) {
-                    try {
-                        mBTSocket4.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
-
-        lightBlueButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                color = 0x00aaff;
-                color2 = Integer.toString(color) + ")";
-                if(sendToLights1) {
-                    try {
-                        mBTSocket.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights2) {
-                    try {
-                        mBTSocket2.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights3) {
-                    try {
-                        mBTSocket3.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights4) {
-                    try {
-                        mBTSocket4.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
-
-        purpleButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                color = 0xaa00ff;
-                color2 = Integer.toString(color) + ")";
-                if(sendToLights1) {
-                    try {
-                        mBTSocket.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights2) {
-                    try {
-                        mBTSocket2.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights3) {
-                    try {
-                        mBTSocket3.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights4) {
-                    try {
-                        mBTSocket4.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
-
-        whiteButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                color = 0xffffff;
-                color2 = Integer.toString(color) + ")";
-                if(sendToLights1) {
-                    try {
-                        mBTSocket.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights2) {
-                    try {
-                        mBTSocket2.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights3) {
-                    try {
-                        mBTSocket3.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights4) {
-                    try {
-                        mBTSocket4.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
-
-        sunsetButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                color = 1;
-                color2 = Integer.toString(color) + "!";
-                if(sendToLights1) {
-                    try {
-                        mBTSocket.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights2) {
-                    try {
-                        mBTSocket2.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights3) {
-                    try {
-                        mBTSocket3.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights4) {
-                    try {
-                        mBTSocket4.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
-
-        blackButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                color = 0x000000;
-                color2 = Integer.toString(color) + ")";
-                if(sendToLights1) {
-                    try {
-                        mBTSocket.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights2) {
-                    try {
-                        mBTSocket2.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights3) {
-                    try {
-                        mBTSocket3.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(sendToLights4) {
-                    try {
-                        mBTSocket4.getOutputStream().write(color2.getBytes());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
-
+        /* TODO: Check if we need this. why would we need to disconnect?
         disconnectBT.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 new DisConnectBT().execute();
             }
-        });
-
-        lights1.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if(!sendToLights1) {
-                    sendToLights1 = true;
-                    Toast.makeText(getApplicationContext(), "Lights1 is on", Toast.LENGTH_LONG).show();
-                }
-                else {
-                    sendToLights1 = false;
-                    Toast.makeText(getApplicationContext(), "Lights1 is off", Toast.LENGTH_LONG).show();
-                }
-            }
-        });
-
-        lights2.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if(!sendToLights2) {
-                    sendToLights2 = true;
-                    Toast.makeText(getApplicationContext(), "Lights2 is on", Toast.LENGTH_LONG).show();
-                }
-                else {
-                    sendToLights2 = false;
-                    Toast.makeText(getApplicationContext(), "Lights2 is off", Toast.LENGTH_LONG).show();
-                }
-            }
-        });
-
-        lights3.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if(!sendToLights3) {
-                    sendToLights3 = true;
-                    Toast.makeText(getApplicationContext(), "Lights3 is on", Toast.LENGTH_LONG).show();
-                }
-                else {
-                    sendToLights3 = false;
-                    Toast.makeText(getApplicationContext(), "Lights3 is off", Toast.LENGTH_LONG).show();
-                }
-            }
-        });
-
-        lights4.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if(!sendToLights4) {
-                    sendToLights4 = true;
-                    Toast.makeText(getApplicationContext(), "Lights4 is on", Toast.LENGTH_LONG).show();
-                }
-                else {
-                    sendToLights4 = false;
-                    Toast.makeText(getApplicationContext(), "Lights4 is off", Toast.LENGTH_LONG).show();
-                }
-            }
-        });
-
-        colorWheel.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-                new Colors(activity, Main_Screen.this, Color.WHITE).show();
-            }
-        });
+        });*/
     }
 
-    public void colorWheelColor(int colorWheel) {
-        colorWheelColorPicked = colorWheel;
-        color2 = Integer.toString(colorWheelColorPicked) + ")";
-        if(sendToLights1) {
-            try {
-                mBTSocket.getOutputStream().write(color2.getBytes());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        if(sendToLights2) {
-            try {
-                mBTSocket2.getOutputStream().write(color2.getBytes());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        if(sendToLights3) {
-            try {
-                mBTSocket3.getOutputStream().write(color2.getBytes());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        if(sendToLights4) {
-            try {
-                mBTSocket4.getOutputStream().write(color2.getBytes());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
+    /*
+        Method that receives a result code when activities that were launched from this
+         activity finish with a result code. These activities are launched with
+         startActivityForResult(...). Make sure to use static int devlared at top
+         for request codes.
+     */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-
-        if (requestCode == 1) {
+        if (requestCode == REQUEST_ENABLE_BT) {
+            /* If we just returned from enabling BT */
             if(resultCode == RESULT_OK){
-                btDevice = data.getParcelableExtra("btDevice");
-                //new ConnectBT().execute();
+                /* Everything was okay, we need to pick a device now */
+                Intent intent = new Intent(Main_Screen.this, BluetoothDevices.class);
+                startActivityForResult(intent, REQUEST_BT_DEVICE);
             }
             if (resultCode == RESULT_CANCELED) {
                 //Write your code if there's no result
             }
+        }else if (requestCode == REQUEST_BT_DEVICE){
+            /* Just got back from picking a device */
+            if (resultCode == RESULT_OK){
+                btDevice = data.getParcelableExtra("btDevice");
+                new ConnectBT().execute();
+            }else{
+                disableAllDevices();
+            }
         }
     }
 
+    /* method to disable communication to all devices because we couldnt get BT working */
+    public void disableAllDevices(){
+        for (int i = 0; i < mDevices.length; i++){
+            mDevices[i].enabled = false;
+        }
+    }
 
+    /* TODO: Decide if this is needed or not */
     private class DisConnectBT extends AsyncTask<Void, Void, Void> {
 
         @Override
@@ -1098,17 +232,19 @@ public class Main_Screen extends Activity implements Colors.colorChangedListener
             super.onPostExecute(result);
             mIsBluetoothConnected = false;
             mIsBluetoothConnected2 = false;
-            sendToLights1 = false;
-            sendToLights2 = false;
             mIsBluetoothConnected3 = false;
             mIsBluetoothConnected4 = false;
-            sendToLights3 = false;
-            sendToLights4 = false;
+
+            mDevices[0].enabled = false;
+            mDevices[1].enabled = false;
+            mDevices[2].enabled = false;
+            mDevices[3].enabled = false;
+            /*
             lights1.setEnabled(false);
             lights2.setEnabled(false);
             lights3.setEnabled(false);
-            lights4.setEnabled(false);
-            disconnectBT.setEnabled(false);
+            lights4.setEnabled(false);*/
+            //disconnectBT.setEnabled(false);
         }
 
     }
@@ -1212,37 +348,22 @@ public class Main_Screen extends Activity implements Colors.colorChangedListener
                 Toast.makeText(getApplicationContext(), "Connected to device", Toast.LENGTH_SHORT).show();
                 if(mBTSocket != null) {
                     mIsBluetoothConnected = true;
-                    sendToLights1 = true;
-                    lights1.setEnabled(true);
+                    mDevices[0].enabled = true;
                 }
                 if(mBTSocket2 != null) {
                     mIsBluetoothConnected2 = true;
-                    sendToLights2 = true;
-                    lights2.setEnabled(true);
+                    mDevices[1].enabled = true;
                 }
                 if(mBTSocket3 != null) {
                     mIsBluetoothConnected3 = true;
-                    sendToLights3 = true;
-                    lights3.setEnabled(true);
+                    mDevices[2].enabled = true;
                 }
                 if(mBTSocket4 != null) {
                     mIsBluetoothConnected4 = true;
-                    sendToLights4 = true;
-                    lights4.setEnabled(true);
+                    mDevices[3].enabled = true;
                 }
-                redButton.setEnabled(true);
-                lightRedButton.setEnabled(true);
-                orangeButton.setEnabled(true);
-                greenButton.setEnabled(true);
-                lightGreenButton.setEnabled(true);
-                yellowButton.setEnabled(true);
-                blueButton.setEnabled(true);
-                lightBlueButton.setEnabled(true);
-                purpleButton.setEnabled(true);
-                blackButton.setEnabled(true);
-                sunsetButton.setEnabled(true);
-                whiteButton.setEnabled(true);
-                disconnectBT.setEnabled(true);
+
+               // disconnectBT.setEnabled(true);
             }
 
             progressDialog.dismiss();
@@ -1258,8 +379,8 @@ public class Main_Screen extends Activity implements Colors.colorChangedListener
         return true;
     }
 
-    Activity activity;
 
+    /* This is where we'll launch a settings activity */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
@@ -1273,5 +394,187 @@ public class Main_Screen extends Activity implements Colors.colorChangedListener
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    /* Implemented method for LightActionFragment interface OnLightValueChangedListener
+        param color - ARGB int value returned from the color wheel.
+        affects - sends color to selected devices
+     */
+    @Override
+    public void onColorChanged(int color){
+        /* Colors received from colorpicker in ARGB so remove alpha */
+        color = (color & 0xFFFFFF);
+        String sColor = Integer.toString(color) + ")";
+        sendSignaltoDevices(sColor);
+
+    }
+
+
+    /* Implemented method for LightActionFragment interface OnLightValueChangedListener
+            param brightness - int value from brightness slider (5-255)
+            affects - sends brightness to selected devices
+         */
+    @Override
+    public void onBrightnessChanged(int brightness){
+        //Toast.makeText(this, "brightness: " + Integer.toString(brightness), Toast.LENGTH_SHORT).show();
+        brightness = brightness / 25;
+        brightness = brightness * 25;
+            String sBrightness = Integer.toString(brightness) + "$";
+            sendSignaltoDevices(sBrightness);
+
+    }
+
+    /* TODO: Mike isn't sure exactly what white temperature means...
+        Implemented method for LightActionFragment interface OnLightValueChangedListener
+            param whiteTemp -  int value returned from white temp slider (1-6).
+            affects - sends white temp to selected devices
+         */
+    @Override
+    public void onWhiteTemperatureChanged(int whiteTemp){
+        //Toast.makeText(this, "whiteTemp: " + Integer.toString(whiteTemp), Toast.LENGTH_SHORT).show();
+
+        /* Validation to make sure we dont send crazy numbers */
+        if (whiteTemp > 6){
+            whiteTemp = 6;
+        }else if (whiteTemp < 1){
+            whiteTemp = 1;
+        }
+        String sWhiteTemp = Integer.toString(whiteTemp) + "?";
+        sendSignaltoDevices(sWhiteTemp);
+    }
+
+
+    /* generic method to send a formatted sting to all currently selected devices
+        param signal - string signal to send to devices. pre formatted
+        affects - sends bytes to attached sockets
+     */
+    public void sendSignaltoDevices(String signal){
+        /* to prevent crashes on emulator... */
+        if (!DEBUG) {
+        /* better way to do this but I don't want to mess up the sockets */
+            if (mDevices[0].selected && mDevices[0].enabled) {
+                try {
+                    mBTSocket.getOutputStream().write(signal.getBytes());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (mDevices[1].selected && mDevices[1].enabled) {
+                try {
+                    mBTSocket2.getOutputStream().write(signal.getBytes());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (mDevices[2].selected && mDevices[2].enabled) {
+                try {
+                    mBTSocket3.getOutputStream().write(signal.getBytes());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (mDevices[3].selected && mDevices[3].enabled) {
+                try {
+                    mBTSocket4.getOutputStream().write(signal.getBytes());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }else{
+            if (mDevices[0].selected && mDevices[0].enabled) {
+                Log.d("Signal", "Sending: " + signal + " to " + mDevices[0].name);
+            }
+            if (mDevices[1].selected && mDevices[1].enabled) {
+                Log.d("Signal", "Sending: " + signal + " to " + mDevices[1].name);
+            }
+            if (mDevices[2].selected && mDevices[2].enabled) {
+                Log.d("Signal", "Sending: " + signal + " to " + mDevices[2].name);
+            }
+            if (mDevices[3].selected && mDevices[3].enabled) {
+                Log.d("Signal", "Sending: " + signal + " to " + mDevices[3].name);
+            }
+        }
+    }
+    /* Implemented method for DashboardFragment interface OnDevicesSelectedChangedListener
+            param pos - device position in gridview. used to select device from mDevices
+            updates - dashboard fragment title, selection in gridview
+         */
+    @Override
+    public void onDeviceAdded(int pos){
+        if (selectingMultiple){
+            selectDevice(pos);
+            actionFragment.setFragmentTitle(Integer.toString(selectedDevices.size()) + " Devices Selected");
+        }else{
+            deselectAllDevices();
+            selectDevice(pos);
+            actionFragment.setFragmentTitle(mDevices[pos].name + " Selected");
+        }
+
+        //Toast.makeText(this, "Device added: " + mDevices[pos].name +" - Selected: " + Integer.toString(selectedDevices.size()), Toast.LENGTH_SHORT).show();
+
+    }
+
+    /* Implemented method for DashboardFragment interface OnDevicesSelectedChangedListener
+            param pos - device position in gridview. used to select device from mDevices
+            updates - dashboard fragment title, selection in gridview
+         */
+    @Override
+    public void onDeviceRemoved(int pos){
+        deselectDevice(pos);
+        if (selectedDevices.size()==0){
+           selectingMultiple = false;
+           actionFragment.setFragmentTitle("No Devices Selected");
+        }else{
+            actionFragment.setFragmentTitle(Integer.toString(selectedDevices.size()) + " Devices Selected");
+        }
+        //Toast.makeText(this, "Device removed: " + mDevices[pos].name+" - Selected: " + Integer.toString(selectedDevices.size()), Toast.LENGTH_SHORT).show();
+
+    }
+
+    /* Implemented method for DashboardFragment interface OnDevicesSelectedChangedListener
+            param pos - device position in gridview. used to select device from mDevices
+            updates - if device is long clicked, we want to select multiple
+         */
+    @Override
+    public void onDeviceLongClick(int pos){
+        //Toast.makeText(this, "Device long click: " + mDevices[pos].name, Toast.LENGTH_SHORT).show();
+        deselectAllDevices();
+        selectDevice(pos);
+        selectingMultiple = true;
+        actionFragment.setFragmentTitle("1 Device Selected");
+
+    }
+
+    /* Method to handle all things involved with selecting a device including updating
+        its selected status, adding it to selectedDevices, and updating the item background
+        in the gridview
+            param pos - device position in gridview. used to select device from mDevices
+            updates - selection in gridview, selectedDevices
+         */
+    public void selectDevice(int pos){
+        mDevices[pos].selected = true;
+        selectedDevices.add(mDevices[pos]);
+        dashboardFragment.selectDeviceView(pos);
+    }
+
+    /* Method to handle all things involved with deselecting a device including updating
+        its selected status, adding it to selectedDevices, and updating the item background
+        in the gridview
+            param pos - device position in gridview. used to select device from mDevices
+            updates - selection in gridview, selectedDevices
+         */
+    public void deselectDevice(int pos){
+        mDevices[pos].selected = false;
+        selectedDevices.remove(mDevices[pos]);
+        dashboardFragment.deselectDeviceView(pos);
+    }
+
+    /* Method to deselect all devices. */
+    public void deselectAllDevices(){
+        for (int i = 0; i < mDevices.length; i++){
+            if (mDevices[i].selected){
+                deselectDevice(i);
+            }
+        }
     }
 }

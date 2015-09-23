@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Definig a container for you List Item -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical"
+    android:gravity="center_vertical"
+    android:background="@drawable/unselected_gridview_item"
+    android:padding="@dimen/gridview_item_padding">
+
+    <!-- Defining where should text be placed. You set you text color here -->
+
+    <ImageView
+        android:id="@+id/device_gridview_image"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:padding="5dp"
+        android:layout_gravity="center_horizontal"/>
+    <TextView
+        android:id="@+id/device_gridview_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="4dip"
+        android:textSize="20sp"
+        android:layout_gravity="center_horizontal"
+        android:padding="5dp"
+        android:textColor="#ffd9d2ce" />
+
+</LinearLayout>

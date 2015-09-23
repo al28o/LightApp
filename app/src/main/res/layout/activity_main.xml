@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:background="@color/background_material_dark"
+        tools:context=".Main_Screen"
+    android:orientation="horizontal"
+    android:weightSum="1">
+
+    <!-- The main dashboard view on left -->
+    <FrameLayout
+        android:id="@+id/left_fragment_container"
+        android:layout_width="0dp"
+        android:layout_weight=".6"
+        android:layout_height="fill_parent"
+
+        />
+
+    <!-- The individual device controller view on right -->
+    <FrameLayout
+        android:id="@+id/right_fragment_container"
+        android:layout_width="0dp"
+        android:layout_weight=".4"
+        android:layout_height="fill_parent"
+        />
+
+</LinearLayout>
