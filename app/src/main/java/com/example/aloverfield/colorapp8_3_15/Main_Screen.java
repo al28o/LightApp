@@ -36,6 +36,7 @@ public class Main_Screen extends ActionBarActivity implements
     private boolean mIsUserInitiatedDisconnect = false;
 
     private int REQUEST_ENABLE_BT = 1;
+    private int REQUEST_BT_DEVICE = 9;
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothDevice btDevice;
     private boolean bStop = false;
@@ -101,11 +102,12 @@ public class Main_Screen extends ActionBarActivity implements
             mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
             if (mBluetoothAdapter == null) {
                 Toast.makeText(getApplicationContext(), "Bluetooth not supported", Toast.LENGTH_LONG).show();
-            }
+            }else {
 
-            if (!mBluetoothAdapter.isEnabled()) {
-                Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-                startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+                if (!mBluetoothAdapter.isEnabled()) {
+                    Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                    startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+                }
             }
         }
 
@@ -137,12 +139,25 @@ public class Main_Screen extends ActionBarActivity implements
         if (requestCode == REQUEST_ENABLE_BT) {
 
             if(resultCode == RESULT_OK){
-                btDevice = data.getParcelableExtra("btDevice");
-                new ConnectBT().execute();
+                Intent intent = new Intent(Main_Screen.this, BluetoothDevices.class);
+                startActivityForResult(intent, REQUEST_BT_DEVICE);
             }
             if (resultCode == RESULT_CANCELED) {
                 //Write your code if there's no result
             }
+        }else if (requestCode == REQUEST_BT_DEVICE){
+            if (resultCode == RESULT_OK){
+                btDevice = data.getParcelableExtra("btDevice");
+                new ConnectBT().execute();
+            }else{
+                disableAllDevices();
+            }
+        }
+    }
+
+    public void disableAllDevices(){
+        for (int i = 0; i < mDevices.length; i++){
+            mDevices[i].enabled = false;
         }
     }
 
