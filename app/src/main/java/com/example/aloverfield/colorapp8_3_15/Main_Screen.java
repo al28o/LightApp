@@ -180,8 +180,14 @@ public class Main_Screen extends ActionBarActivity implements
             }
         }else if (requestCode == REQUEST_BT_DEVICE){
             /* Just got back from picking a device */
+            Log.d(TAG, "Picked device");
             if (resultCode == RESULT_OK){
+                Log.d(TAG, "Result ok");
                 btDevice = data.getParcelableExtra("btDevice");
+                if (btDevice == null){
+                    Log.d(TAG, "BTDevice null");
+                }
+                Log.d(TAG, "Launching connect");
                 new ConnectBT().execute();
             }else{
                 disableAllDevices();
@@ -261,16 +267,16 @@ public class Main_Screen extends ActionBarActivity implements
     @Override
     protected void onResume() {
         if ((mBTSocket == null || !mIsBluetoothConnected) && btDevice != null) {
-            new ConnectBT().execute();
+            //new ConnectBT().execute();
         }
         else if ((mBTSocket2 == null || !mIsBluetoothConnected2) && btDevice != null) {
-            new ConnectBT().execute();
+            //new ConnectBT().execute();
         }
         else if ((mBTSocket3 == null || !mIsBluetoothConnected3) && btDevice != null) {
-            new ConnectBT().execute();
+           // new ConnectBT().execute();
         }
         else if ((mBTSocket4 == null || !mIsBluetoothConnected4) && btDevice != null) {
-            new ConnectBT().execute();
+            //new ConnectBT().execute();
         }
         Log.d(TAG, "Resumed");
         super.onResume();
@@ -289,11 +295,11 @@ public class Main_Screen extends ActionBarActivity implements
     }
 
     private class ConnectBT extends AsyncTask<Void, Void, Void> {
-        private boolean mConnectSuccessful = true;
+        private boolean mConnectSuccessful = false;
 
         @Override
         protected void onPreExecute() {
-            progressDialog = ProgressDialog.show(Main_Screen.this, "Hold on", "Connecting");// http://stackoverflow.com/a/11130220/1287554
+            progressDialog = ProgressDialog.show(Main_Screen.this, "Hold on...", "Connecting");// http://stackoverflow.com/a/11130220/1287554
         }
 
         @Override
@@ -301,38 +307,77 @@ public class Main_Screen extends ActionBarActivity implements
 
             try {
                 if (mBTSocket == null || !mIsBluetoothConnected) {
+                    Log.d(TAG, "Connecting to 1");
                     if(btDevice != null) {
+                        Log.d(TAG, "BTDevice not null");
+
                         mBTSocket = btDevice.createInsecureRfcommSocketToServiceRecord(mDeviceUUID);
+                        if (mBTSocket.isConnected()){
+                            Log.d(TAG, "Connected to socket");
+                            mConnectSuccessful = true;
+                            mBTSocket.connect();
+                        }else{
+                            Log.d(TAG, "Connection unsuccesful");
+
+                        }
+
                         BluetoothAdapter.getDefaultAdapter().cancelDiscovery();
-                        mBTSocket.connect();
+
                     }
                 }
                 else if(mBTSocket2 == null || !mIsBluetoothConnected2) {
                     if(btDevice != null) {
+                        Log.d(TAG, "Connecting to 2");
+
                         mBTSocket2 = btDevice.createInsecureRfcommSocketToServiceRecord(mDeviceUUID);
+                        if (mBTSocket.isConnected()){
+                            Log.d(TAG, "Connected to socket");
+                            mConnectSuccessful = true;
+                            mBTSocket2.connect();
+                        }else{
+                            Log.d(TAG, "Connection unsuccesful");
+
+                        }
                         BluetoothAdapter.getDefaultAdapter().cancelDiscovery();
-                        mBTSocket2.connect();
+
                     }
                 }
                 else if(mBTSocket3 == null || !mIsBluetoothConnected3) {
                     if (btDevice != null) {
+                        Log.d(TAG, "Connecting to 3");
+
                         mBTSocket3 = btDevice.createInsecureRfcommSocketToServiceRecord(mDeviceUUID);
+                        if (mBTSocket.isConnected()){
+                            Log.d(TAG, "Connected to socket");
+                            mConnectSuccessful = true;
+                            mBTSocket3.connect();
+                        }else{
+                            Log.d(TAG, "Connection unsuccesful");
+
+                        }
                         BluetoothAdapter.getDefaultAdapter().cancelDiscovery();
-                        mBTSocket3.connect();
                     }
                 }
                 else if(mBTSocket4 == null || !mIsBluetoothConnected4) {
                     if (btDevice != null) {
+                        Log.d(TAG, "Connecting to 4");
+
                         mBTSocket4 = btDevice.createInsecureRfcommSocketToServiceRecord(mDeviceUUID);
+                        if (mBTSocket.isConnected()){
+                            Log.d(TAG, "Connected to socket");
+                            mConnectSuccessful = true;
+                            mBTSocket4.connect();
+                        }else{
+                            Log.d(TAG, "Connection unsuccesful");
+
+                        }
                         BluetoothAdapter.getDefaultAdapter().cancelDiscovery();
-                        mBTSocket4.connect();
                     }
                 }
             } catch (IOException e) {
                 // Unable to connect to device
                 e.printStackTrace();
                 Toast.makeText(getApplicationContext(), "Bluetooth Disconnected", Toast.LENGTH_LONG).show();
-                mConnectSuccessful = false;
             }
             return null;
         }
@@ -343,8 +388,13 @@ public class Main_Screen extends ActionBarActivity implements
 
             if (!mConnectSuccessful) {
                 Toast.makeText(getApplicationContext(), "Could not connect to device. Is it a Serial device? Also check if the UUID is correct in the settings", Toast.LENGTH_LONG).show();
+                Log.d(TAG, "PostExecute connection unsuccesful");
+                progressDialog.cancel();
+                progressDialog.dismiss();
                 //finish();
             } else {
+                Log.d(TAG, "Connected to device");
+
                 Toast.makeText(getApplicationContext(), "Connected to device", Toast.LENGTH_SHORT).show();
                 if(mBTSocket != null) {
                     mIsBluetoothConnected = true;
@@ -389,7 +439,9 @@ public class Main_Screen extends ActionBarActivity implements
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
+        if (id == R.id.action_connect) {
+            Intent intent = new Intent(Main_Screen.this, BluetoothDevices.class);
+            startActivityForResult(intent, REQUEST_BT_DEVICE);
             return true;
         }
 
