@@ -17,11 +17,85 @@
         android:text="No Devices Selected"
         android:textColor="@color/textColor"/>
 
-
-    <com.example.aloverfield.colorapp8_3_15.ColorPicker
-        android:id="@+id/colorPicker"
+    <FrameLayout
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content">
+        <com.example.aloverfield.colorapp8_3_15.ColorPicker
+            android:id="@+id/colorPicker"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center" />
+
+        <Button
+            android:layout_width="65dp"
+            android:layout_height="65dp"
+            android:textSize="36sp"
+            android:textAlignment="center"
+            android:id="@+id/saveColorButton"
+            android:layout_gravity="center"
+            android:background="@android:color/transparent"
+            android:text="+"
+            />
+    </FrameLayout>
+
+    /* Saved colors list */
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+        <ImageView
+            android:id="@+id/savedColorImageView1"
+            android:layout_width="@dimen/color_swatch_size"
+            android:layout_height="@dimen/color_swatch_size"
+            android:layout_margin="@dimen/color_swatch_margin"
+            android:background="@drawable/color_swatch"
+            android:clickable="true"/>
+
+        <ImageView
+            android:id="@+id/savedColorImageView2"
+            android:layout_width="@dimen/color_swatch_size"
+            android:layout_height="@dimen/color_swatch_size"
+            android:layout_margin="@dimen/color_swatch_margin"
+            android:background="@drawable/color_swatch"
+            android:clickable="true"/>
+
+        <ImageView
+            android:id="@+id/savedColorImageView3"
+            android:layout_width="@dimen/color_swatch_size"
+            android:layout_height="@dimen/color_swatch_size"
+            android:layout_margin="@dimen/color_swatch_margin"
+            android:background="@drawable/color_swatch"
+            android:clickable="true"/>
+
+        <ImageView
+            android:id="@+id/savedColorImageView4"
+            android:layout_width="@dimen/color_swatch_size"
+            android:layout_height="@dimen/color_swatch_size"
+            android:layout_margin="@dimen/color_swatch_margin"
+            android:background="@drawable/color_swatch"
+            android:clickable="true"/>
+
+        <ImageView
+            android:id="@+id/savedColorImageView5"
+            android:layout_width="@dimen/color_swatch_size"
+            android:layout_height="@dimen/color_swatch_size"
+            android:layout_margin="@dimen/color_swatch_margin"
+            android:background="@drawable/color_swatch"
+            android:clickable="true"/>
+
+        <ImageView
+            android:id="@+id/savedColorImageView6"
+            android:layout_width="@dimen/color_swatch_size"
+            android:layout_height="@dimen/color_swatch_size"
+            android:layout_margin="@dimen/color_swatch_margin"
+            android:background="@drawable/color_swatch"
+            android:clickable="true"
+            />
+
+
+    </LinearLayout>
+
 
     <TextView
         android:layout_width="wrap_content"

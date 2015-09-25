@@ -3,4 +3,11 @@
         <color name="primaryLayer">#262626</color>
     <color name="highlightColor">#00B3FF</color>
     <color name="textColor">#ffd9d2ce</color>
+
+    <color name="savedColor1">#ff0000</color>
+    <color name="savedColor2">#ffff00</color>
+    <color name="savedColor3">#ff00ff</color>
+    <color name="savedColor4">#00ff00</color>
+    <color name="savedColor5">#0000ff</color>
+    <color name="savedColor6">#ffffff</color>
 </resources>
