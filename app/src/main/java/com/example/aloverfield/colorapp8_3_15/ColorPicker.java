@@ -119,6 +119,7 @@ public class ColorPicker extends View {
 	 */
 	private RectF mCenterRectangle = new RectF();
 
+
 	/**
 	 * {@code true} if the user clicked on the pointer to start the move mode. <br>
 	 * {@code false} once the user stops touching the screen.
@@ -339,6 +340,7 @@ public class ColorPicker extends View {
 
 		mPointerColor = new Paint(Paint.ANTI_ALIAS_FLAG);
 		mPointerColor.setColor(calculateColor(mAngle));
+
 
 		mCenterNewPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 		mCenterNewPaint.setColor(calculateColor(mAngle));

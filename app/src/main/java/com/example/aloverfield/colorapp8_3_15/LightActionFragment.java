@@ -1,12 +1,18 @@
 package com.example.aloverfield.colorapp8_3_15;
 
 import android.app.Activity;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -31,6 +37,12 @@ public class LightActionFragment extends Fragment {
         public void onBrightnessChanged(int brightness);
         /* called every time the wnite temp slider is moved */
         public void onWhiteTemperatureChanged(int whiteTemp);
+        /* called when we save a new color */
+        public void onColorSaved(int color);
+
+        /* Called when fragment view inflated so main can update it (color swatches) */
+        public void onFragmentViewLoaded();
+
     }
 
     /* Title of the fragment that reflects the devices selected */
@@ -40,22 +52,31 @@ public class LightActionFragment extends Fragment {
         turned off and to savedBrightness when turned on.
      */
     private Switch onOffSwitch;
+    private Button saveColorButton;
+    private ImageView savedColor1;
+
+    private View view;
+
+
+
     private int savedBrightness = 205;
 
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              final Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_light_action, container, false);
+        view = inflater.inflate(R.layout.fragment_light_action, container, false);
 
         titleView = (TextView) view.findViewById(R.id.actionDeviceTitle);
 
-        ColorPicker colorPicker = (ColorPicker) view.findViewById(R.id.colorPicker);
+        mCallback.onFragmentViewLoaded();
+
+        final ColorPicker colorPicker = (ColorPicker) view.findViewById(R.id.colorPicker);
 
         colorPicker.setShowOldCenterColor(false);
-        colorPicker.setOnColorChangedListener(new ColorPicker.OnColorChangedListener() {
+        colorPicker.setOnColorSelectedListener(new ColorPicker.OnColorSelectedListener() {
             @Override
-            public void onColorChanged(int color) {
+            public void onColorSelected(int color) {
                 /* Let MainActivity handle what to do */
                 mCallback.onColorChanged(color);
             }
@@ -118,6 +139,28 @@ public class LightActionFragment extends Fragment {
             }
         });
 
+        saveColorButton = (Button) view.findViewById(R.id.saveColorButton);
+        saveColorButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+               mCallback.onColorSaved(colorPicker.getColor());
+
+            }
+        });
+
+
+        for (int i = 0;i < colorImagesViews.length;i++){
+            final ImageView iv = (ImageView) view.findViewById(colorImagesViews[i]);
+            final int p = i;
+            iv.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    colorPicker.setColor(swatchColors[p]);
+                    mCallback.onColorChanged(swatchColors[p]);
+                }
+            });
+        }
+
         return view;
 
     }
@@ -134,6 +177,7 @@ public class LightActionFragment extends Fragment {
 
         try{
             mCallback = (OnLightValueChangedListener) activity;
+
         }catch(ClassCastException e){
             throw new ClassCastException(activity.toString() + "must implement OnLightValueChangedListener.");
         }
@@ -147,5 +191,31 @@ public class LightActionFragment extends Fragment {
     }
 
 
+    public int[] colorImagesViews = {
+            R.id.savedColorImageView1,
+            R.id.savedColorImageView2,
+            R.id.savedColorImageView3,
+            R.id.savedColorImageView4,
+            R.id.savedColorImageView5,
+            R.id.savedColorImageView6,
+    };
 
+    public int[] swatchColors = { Color.WHITE, Color.WHITE, Color.WHITE, Color.WHITE, Color.WHITE, Color.WHITE};
+
+    public void setSwatchColor(int i, int color){
+        Log.d("SET", "1");
+        ImageView iv = (ImageView) view.findViewById(colorImagesViews[i]);
+        Log.d("SET", "2");
+
+        Drawable bg = iv.getBackground();
+        Log.d("SET", "3");
+
+        bg.setColorFilter(color, PorterDuff.Mode.MULTIPLY);
+        Log.d("SET", "4");
+
+        iv.setBackgroundDrawable(bg);
+        Log.d("SET", "5");
+        swatchColors[i] = color;
+
+    }
 }
