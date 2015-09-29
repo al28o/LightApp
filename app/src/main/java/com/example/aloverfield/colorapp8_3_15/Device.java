@@ -16,7 +16,7 @@ public class Device implements Parcelable {
     public boolean selected = false;
 
     /* For debugging on an emulator, set to true */
-    public boolean enabled = false;
+    public boolean enabled = true;
 
     /* will be relevant later when we have multiple devices */
     public enum DeviceType{

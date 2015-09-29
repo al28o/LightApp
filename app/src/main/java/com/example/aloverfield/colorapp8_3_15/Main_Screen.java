@@ -5,7 +5,10 @@ import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
@@ -73,7 +76,7 @@ public class Main_Screen extends ActionBarActivity implements
         Currently there should be checks in place to avoid crashes
         making this obsolete
      */
-    private static boolean DEBUG = false;
+    private static boolean DEBUG = true;
 
     /* Save references to our fragments so we can call their class methods
         such as selecting a device or selecting a new color
@@ -84,11 +87,18 @@ public class Main_Screen extends ActionBarActivity implements
     /* Collection of devices that are currently selected */
     private List<Device> selectedDevices;
 
+    /* Preferences for storing saved colors */
+    private SharedPreferences prefs;
+    private SharedPreferences.Editor prefsEditor;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+
+
 
 
         /* Add dashboard to the left fragment container */
@@ -111,6 +121,13 @@ public class Main_Screen extends ActionBarActivity implements
                     .add(R.id.right_fragment_container, actionFragment).commit();
 
         }
+
+        /* Load color swatches */
+        prefs = getSharedPreferences("prefs.lightapp", Context.MODE_PRIVATE);
+        Log.d(TAG, "Got prefs");
+        prefsEditor = prefs.edit();
+        Log.d(TAG, "Got editor");
+
 
         /* Not sure if this is needed/wanted. I think it helps choose portrait vs landscape */
         ActivityHelper.initialize(this);
@@ -160,6 +177,55 @@ public class Main_Screen extends ActionBarActivity implements
                 new DisConnectBT().execute();
             }
         });*/
+    }
+
+
+    @Override
+    public void onFragmentViewLoaded(){
+        loadSavedColors();
+    }
+
+    public void loadSavedColors(){
+
+        int color;
+        Log.d(TAG, "Loading colors");
+        for (int i = 0; i < 6; i++) {
+
+
+            if (prefs.contains("saved_color_" + Integer.toString(i))){
+               color = prefs.getInt("saved_color_" + Integer.toString(i), Color.WHITE);
+            }else{
+                prefsEditor.putInt("saved_color_" + Integer.toString(i), Color.WHITE);
+                color = Color.WHITE;
+            }
+
+
+            actionFragment.setSwatchColor(i,color);
+
+
+        }
+
+        prefsEditor.commit();
+
+    }
+
+    @Override
+    public void onColorSaved(int color){
+        int savedColor;
+        for (int i = 0; i < 5; i++) {
+            if (prefs.contains("saved_color_" + Integer.toString(i))){
+                savedColor = prefs.getInt("saved_color_" + Integer.toString(i), Color.WHITE);
+                prefsEditor.putInt("saved_color_" + Integer.toString(i+1), savedColor);
+            }else{
+                prefsEditor.putInt("saved_color_" + Integer.toString(i), Color.WHITE);
+            }
+
+        }
+        prefsEditor.putInt("saved_color_0", color);
+        prefsEditor.commit();
+
+        loadSavedColors();
+
     }
 
     /*
@@ -314,7 +380,7 @@ public class Main_Screen extends ActionBarActivity implements
                         Log.d(TAG, "BTDevice not null");
 
                         mBTSocket = btDevice.createInsecureRfcommSocketToServiceRecord(mDeviceUUID);
-                        if (mBTSocket.isConnected()){
+                        if (mBTSocket != null){
                             Log.d(TAG, "Connected to socket");
                             mConnectSuccessful = true;
                             mBTSocket.connect();
@@ -332,7 +398,7 @@ public class Main_Screen extends ActionBarActivity implements
                         Log.d(TAG, "Connecting to 2");
 
                         mBTSocket2 = btDevice.createInsecureRfcommSocketToServiceRecord(mDeviceUUID);
-                        if (mBTSocket.isConnected()){
+                        if (mBTSocket2 != null){
                             Log.d(TAG, "Connected to socket");
                             mConnectSuccessful = true;
                             mBTSocket2.connect();
@@ -349,7 +415,7 @@ public class Main_Screen extends ActionBarActivity implements
                         Log.d(TAG, "Connecting to 3");
 
                         mBTSocket3 = btDevice.createInsecureRfcommSocketToServiceRecord(mDeviceUUID);
-                        if (mBTSocket.isConnected()){
+                        if (mBTSocket3 != null){
                             Log.d(TAG, "Connected to socket");
                             mConnectSuccessful = true;
                             mBTSocket3.connect();
@@ -365,7 +431,7 @@ public class Main_Screen extends ActionBarActivity implements
                         Log.d(TAG, "Connecting to 4");
 
                         mBTSocket4 = btDevice.createInsecureRfcommSocketToServiceRecord(mDeviceUUID);
-                        if (mBTSocket.isConnected()){
+                        if (mBTSocket4 != null){
                             Log.d(TAG, "Connected to socket");
                             mConnectSuccessful = true;
                             mBTSocket4.connect();
@@ -457,6 +523,7 @@ public class Main_Screen extends ActionBarActivity implements
     @Override
     public void onColorChanged(int color){
         /* Colors received from colorpicker in ARGB so remove alpha */
+        Log.d(TAG, "Color changed to: " + Integer.toString(color));
         color = (color & 0xFFFFFF);
         String sColor = Integer.toString(color) + ")";
         sendSignaltoDevices(sColor);
