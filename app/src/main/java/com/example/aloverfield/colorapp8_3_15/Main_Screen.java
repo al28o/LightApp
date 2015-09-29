@@ -1,5 +1,6 @@
 package com.example.aloverfield.colorapp8_3_15;
 
+import android.app.ActionBar;
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -11,6 +12,7 @@ import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
+import android.app.Activity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
